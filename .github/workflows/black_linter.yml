@@ -1,0 +1,60 @@
+# name: Lint
+
+# on: push
+# permissions: write-all
+# jobs:
+#   build:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v3
+#       - run: |
+#           git config user.name github-actions
+#           git config user.email github-actions@github.com
+#           git pull
+#           pip install black
+#           black .
+#           git commit -a -m "[🪄linter] ${{ github.event.head_commit.message }}"
+#           git push
+
+# name: Blacken
+
+# on:
+#   pull_request:
+#     types: [opened, synchronize]
+
+
+name: Blacken
+
+on: push
+
+jobs:
+  blacken:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+#       with:
+#         token: ${{ secrets.ACTION_TOKEN }}
+#         ref: ${{ github.head_ref }}
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - uses: actions/cache@v2
+      id: cache
+      with:
+        path: ${{ env.pythonLocation }}
+        key: ${{ runner.os }}-python-${{ env.pythonLocation }}-black
+    - name: Install Black
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: pip install black
+    - name: Black Check
+      run: black --check .
+    - name: Black Format
+      if: failure()
+      run: |
+        black .
+        git config --global user.name github-actions
+        git config --global user.email github-actions@github.com
+        git add *.py
+        git commit -m "🎨 Format Python code with Black"
+        git push

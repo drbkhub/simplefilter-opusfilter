@@ -1,0 +1,108 @@
+common:
+  default_n_jobs: 8 #  Correct this parameter  according to the number of processor cores
+  output_directory: datasets
+
+steps:
+  # step 1
+  - type: preprocess
+    parameters:
+      inputs: 
+      - WikiMatrix.en-ru.en
+      - WikiMatrix.en-ru.ru
+      outputs: &prepeared
+        - "WikiMatrix.en-ru.prepeared.en"
+        - "WikiMatrix.en-ru.prepeared.ru"
+      preprocessors:
+        - WhitespaceNormalizer: {}
+        - RegExpSub:
+            patterns:
+              - [ ' / ', ' ', 0, '' ]
+              - [ '»', '"', 0, '' ]
+              - [ ' , ', ', ', 0, '' ]
+              - [ '«', '"', 0, '' ]
+              - [ '“', '"', 0, '' ]
+              - [ '”', '"', 0, '' ]
+              - [ '„', '"', 0, '' ]
+              - [ '`', "'", 0, '' ]
+              - [ '“', '"', 0, '' ]
+              - [ '‟', '"', 0, '' ]
+              - [ ' ,', ',', 0, '' ]
+              - [ '\( ', '(', 0, '' ]
+              - [ ' \)', '(', 0, '' ]
+              - [ ' \.', '.', 0, '' ]
+              - [ '\{\\.*\}', '', 0, '' ]
+
+        - LatinCyrillicWordNormalizer: {}
+          module: custom
+
+
+  # step 2
+  - type: remove_duplicates
+    parameters:
+      inputs: *prepeared
+      outputs: &_noduplicates
+        - "WikiMatrix.en-ru.no__duplicates.en"
+        - "WikiMatrix.en-ru.no__duplicates.ru"
+
+  # step 3
+  - type: remove_duplicates
+    parameters:
+      inputs: *_noduplicates
+      outputs: &noduplicates
+        - "WikiMatrix.en-ru.no_duplicates.en"
+        - "WikiMatrix.en-ru.no_duplicates.ru"
+      compare: [0]
+      overlap: ["datasets/WikiMatrix.en-ru.prepeared.ru"]
+
+
+
+  # step 4
+  - type: filter
+    parameters:
+      inputs: *noduplicates
+      outputs:  
+        - "WikiMatrix.en-ru.result.en"
+        - "WikiMatrix.en-ru.result.ru"
+      # filterfalse: true
+      filters:
+        - HtmlTagFilter: {}
+
+        - AlphabetRatioFilter:
+            threshold: 0.2
+            # exclude_whitespace: true
+
+        - LongWordFilter:
+            threshold: 40
+
+        - TerminalPunctuationFilter: 
+            threshold: -2
+
+        - NonZeroNumeralsFilter: 
+            threshold: 0.5
+
+        - LongestCommonSubstringFilter: {}
+
+        - SimilarityFilter:
+            threshold: 0.75
+
+        - LanguageIDFilter:
+            languages: [ en, ru ]
+            # id_method: cld2
+            langid_languages: [en, ru]
+            thresholds: [ 0.8, 0.8 ]
+
+        - CharacterScoreFilter:
+            scripts: [ Latin, Cyrillic ]
+            thresholds: [0.8, 0.8]
+
+        - NonPairedBracketsFilter:
+            # threshold: 0.5 
+            brackets:
+              - "()"
+              - "{}"
+              - "[]"
+              # - '""'
+            skip_numbering: true
+          module: custom
+        
+
