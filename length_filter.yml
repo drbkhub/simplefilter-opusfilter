@@ -1,0 +1,18 @@
+common:
+  default_n_jobs: 8 #  Correct this parameter  according to the number of processor cores
+  output_directory: datasets
+
+steps:
+  - type: filter
+    parameters:
+      inputs: 
+        - "WikiMatrix.en-ru.en"
+        - "WikiMatrix.en-ru.ru"
+      outputs:  
+        - "WikiMatrix.en-ru.result_lengthfilter.en"
+        - "WikiMatrix.en-ru.result_lengthfilter.ru"
+      # filterfalse: true
+      filters:
+        - LengthFilter:
+            min_length: 1
+            max_length: 10
